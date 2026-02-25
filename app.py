@@ -1,7 +1,7 @@
 # ===============================================================
-# 🧠 AI Universal Studio — Versão PRO++ (FINAL / CLOUD READY)
+# 🧠 AI Universal Studio — Versão PRO++ (CLOUD SAFE)
 # ===============================================================
-# Sistema multimodal: Texto + Imagem + Áudio
+# Multimodal: Texto + Imagem (Áudio desativado no Cloud)
 # ===============================================================
 
 import streamlit as st
@@ -17,7 +17,6 @@ from sentence_transformers import SentenceTransformer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from deep_translator import GoogleTranslator
-from faster_whisper import WhisperModel
 
 # ===============================================================
 # ⚙️ Configuração da Página
@@ -31,8 +30,8 @@ st.set_page_config(
 st.title("🧠 AI Universal Studio — Versão PRO++")
 st.info(
     """
-Sistema **Multimodal Inteligente** que aprende com **texto**, **imagem** e **voz**  
-para gerar previsões personalizadas usando **IA de ponta** 🔥
+Sistema **Multimodal Inteligente** com **Texto + Imagem**  
+(O áudio foi desativado nesta versão Cloud por limitação da plataforma)
 """
 )
 
@@ -56,14 +55,8 @@ def load_text_model():
     return SentenceTransformer("all-MiniLM-L6-v2")
 
 
-@st.cache_resource
-def load_whisper_model():
-    return WhisperModel("base", device="cpu")
-
-
 caption_processor, caption_model = load_caption_model()
 text_embedder = load_text_model()
-whisper = load_whisper_model()
 
 # ===============================================================
 # 💾 Funções auxiliares
@@ -81,15 +74,6 @@ def carregar_modelo():
 
 def gerar_embedding_texto(texto):
     return text_embedder.encode([texto])[0]
-
-
-def transcrever_audio(arquivo):
-    try:
-        segments, _ = whisper.transcribe(arquivo)
-        texto = " ".join(seg.text for seg in segments)
-        return texto
-    except Exception as e:
-        return f"[Erro ao processar áudio: {e}]"
 
 
 def gerar_caption_imagem(image):
@@ -136,7 +120,7 @@ aba = st.tabs(
 # ===============================================================
 with aba[0]:
     st.header("🧩 Etapa 1 – Criar base de aprendizado")
-    st.write("Adicione exemplos (texto + categoria) para ensinar o modelo.")
+    st.write("Adicione exemplos de texto para ensinar o modelo.")
 
     entradas = []
     for i in range(3):
@@ -195,15 +179,9 @@ with aba[1]:
 with aba[2]:
     st.header("🔮 Etapa 3 – Fazer previsão")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        uploaded_img = st.file_uploader(
-            "📷 Imagem (opcional)", type=["jpg", "jpeg", "png"]
-        )
-    with col2:
-        uploaded_audio = st.file_uploader(
-            "🎤 Áudio (opcional)", type=["mp3", "wav", "m4a"]
-        )
+    uploaded_img = st.file_uploader(
+        "📷 Imagem (opcional)", type=["jpg", "jpeg", "png"]
+    )
 
     texto_input = st.text_area("💬 Texto descritivo (opcional)")
 
@@ -215,21 +193,14 @@ with aba[2]:
             desc_img = gerar_caption_imagem(image)
             st.markdown(f"*Descrição da imagem:* {desc_img}")
 
-    desc_audio = ""
-    if uploaded_audio:
-        st.audio(uploaded_audio)
-        with st.spinner("🎧 Transcrevendo áudio..."):
-            desc_audio = transcrever_audio(uploaded_audio)
-            st.markdown(f"*Transcrição do áudio:* {desc_audio}")
-
-    entrada = f"{desc_img} {desc_audio} {texto_input}".strip()
+    entrada = f"{desc_img} {texto_input}".strip()
     st.text_area("🧩 Entrada combinada", value=entrada, height=120)
 
     if st.button("🔍 Fazer previsão"):
         if not st.session_state.modelo_rf or not st.session_state.encoder:
             st.warning("⚠️ Treine o modelo antes.")
         elif not entrada:
-            st.warning("⚠️ Insira imagem, áudio ou texto.")
+            st.warning("⚠️ Insira texto ou imagem.")
         else:
             emb = gerar_embedding_texto(entrada).reshape(1, -1)
             pred = st.session_state.modelo_rf.predict(emb)[0]
@@ -243,7 +214,7 @@ with aba[2]:
                     <h3>🧠 Previsão da IA:
                         <span style='color:{cor};'>{classe}</span>
                     </h3>
-                    <p style='color:gray;'>Baseado em texto, imagem e voz</p>
+                    <p style='color:gray;'>Baseado em texto e imagem</p>
                 </div>
                 """,
                 unsafe_allow_html=True,
